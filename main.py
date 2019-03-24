@@ -41,6 +41,95 @@ def get_key(full_name, hash_type):
                 my_hash.update(b)
     return my_hash.hexdigest()
 
+
+class CheckSum:
+    def __init__(self, parent):
+        self._parent = parent
+    
+    def checksum(self):
+        check_file = self._parent.para_strings[0]
+        hash_type = self._parent.para_strings[1]
+        to_check_sum = self._parent.para_strings[2]
+        support_hash = ['md5', 'sha1', 'sha256']
+        if len(check_file) == 0 or len(hash_type) == 0 or hash_type not in support_hash:
+            self.out_checksum_help()
+            return
+        if not os.path.exists(check_file):
+            notice = ['File Not Exist!']
+            self._parent.update_outtext(notice)
+            return
+        hash_key = get_key(check_file, hash_type)
+        outs = []
+        outs.append(str(hash_key))
+        if len(to_check_sum) > 0:
+            if to_check_sum == hash_key:
+                outs.append('Check passed!')
+            else:
+                outs.append('Check Failed!')
+        self._parent.update_outtext(outs)
+
+    def out_checksum_help(self):
+        help = ['Please input paramater:',
+                'para1:need check file',
+                'para2:check algorithm(md5, sha1, sha256)',
+                'para3:need checked sum']
+        self._parent.update_outtext(help)
+
+
+class CheckUnique:
+    def __init__(self, parent):
+        self._parent = parent
+
+    def unique(self):
+        out_file = self._parent.para_strings[4]
+        if len(out_file) == 0 or len(self._parent.para_strings[0]) == 0:
+            self.out_unique_help()
+            return
+        self.hash_key = dict()
+        self.files = 0
+        self.empty_files = []
+        with open(out_file, 'w') as self.out_f:
+            for x in range(4):
+                self.process_unique(self._parent.para_strings[x])
+            for one in self.empty_files:
+                self.out_f.write('#empty File:%s\n' % one)
+        notice = ['process success finished!']
+        self._parent.update_outtext(notice)
+
+    def process_unique(self, root):
+        if len(root) == 0:
+            return
+        if os.path.isdir(root):
+            for cur_path, dirs, files in os.walk(root):
+                for file in files:
+                    self.files += 1
+                    if self.files % 1000 == 0:
+                        ptr_str = ['\r processed files:%d' % self.files]
+                        self._parent.update_outtext(ptr_str)
+                    full_name = os.path.join(cur_path, file)
+                    if os.path.getsize(full_name) == 0:
+                        self.empty_files.append(full_name)
+                        continue
+
+                    f_key = get_key(full_name, 'sha1')
+                    if f_key in self.hash_key:
+                        self.record_equal(self.hash_key[f_key], full_name)
+                    else:
+                        self.hash_key[f_key] = full_name
+
+    def out_unique_help(self):
+        help = ['Please input paramater:',
+                'para1~para4:the dir to find equal files, High priority ahead',
+                'para5:the file to out the equal files, can be run in command']
+        self._parent.update_outtext(help)
+
+    def record_equal(self, ori, equal):
+        outs = ['#Ori:%s\n' % ori,
+                'del "%s"\n' % equal]
+        for one in outs:
+            self.out_f.write(one)
+
+
 class GUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -69,7 +158,7 @@ class GUI:
             e.set("")
             para[ofline].pack()
 
-        buttuns = {'checksum', 'unique', 'split', 'merge'}
+        buttuns = {'checksum', 'unique', 'split', 'merge', 'hashdir'}
         action_buttun = tk.Frame(self.root, borderwidth=0)
         for buttun in buttuns:
             tk.Button(action_buttun, text=buttun,
@@ -83,37 +172,12 @@ class GUI:
         for entry in self.para_entrys:
             self.para_strings.append(entry.get())
         if action == 'checksum':
-            self.checksum()
-
-    def checksum(self):
-        check_file = self.para_strings[0]
-        hash_type = self.para_strings[1]
-        to_check_sum = self.para_strings[2]
-        support_hash = ['md5', 'sha1', 'sha256']
-        if len(check_file) == 0 or len(hash_type) == 0 or hash_type not in support_hash:
-            self.out_checksum_help()
-            return
-        if not os.path.exists(check_file):
-            notice = ['File Not Exist!']
-            self.update_outtext(notice)
-            return
-        hash_key = get_key(check_file, hash_type)
-        outs = []
-        outs.append(str(hash_key))
-        if len(to_check_sum) > 0:
-            if to_check_sum == hash_key:
-                outs.append('Check passed!')
-            else:
-                outs.append('Check Failed!')
-        self.update_outtext(outs)
-
-    def out_checksum_help(self):
-        help = ['Please input paramater:',
-                'para1:need check file',
-                'para2:check algorithm(md5, sha1, sha256)',
-                'para3:need checked sum']
-        self.update_outtext(help)
-
+            p = CheckSum(self)
+            p.checksum()
+        if action == 'unique':
+            p = CheckUnique(self)
+            p.unique()
+        
     def update_outtext(self, strings):
         for string in strings:
             self.outText.insert(tk.END, string + '\n')
