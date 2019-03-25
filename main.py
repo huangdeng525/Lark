@@ -175,6 +175,83 @@ class HashDir:
         self._parent.update_outtext(notice)
 
 
+class Split:
+    def __init__(self, parent):
+        self._parent = parent
+
+    def split(self):
+        input_file = self._parent.para_strings[0]
+        outs_files = []
+        for x in range(4):
+            if len(self._parent.para_strings[x+1]) > 0:
+                outs_files.append(self._parent.para_strings[x+1])
+        if len(input_file) == 0 or len(outs_files) == 0:
+            self.out_split_help()
+            return
+
+        out_fs = []
+        for outs_file in outs_files:
+            out_fs.append(open(outs_file, 'wb'))
+
+        with open(input_file, 'rb') as f:
+            self.write2file(f, out_fs)
+
+        for f in out_fs:
+            f.close()
+
+    def write2file(self, in_f, out_fs):
+        while True:
+            for f in out_fs:
+                block = in_f.read(256)
+                if not block:
+                    return
+                f.write(block)
+
+    def out_split_help(self):
+        notice = ['Please input paramater:',
+                'para1:input file to split',
+                'para2~para5:the files to save split data']
+        self._parent.update_outtext(notice)
+
+
+class Merge:
+    def __init__(self, parent):
+        self._parent = parent
+
+    def merge(self):
+            outs_file = self._parent.para_strings[4]
+            input_files = []
+            for x in range(4):
+                if len(self._parent.para_strings[x]) > 0:
+                    input_files.append(self._parent.para_strings[x])
+            if len(outs_file) == 0 or len(input_files) == 0:
+                self.out_merge_help()
+                return
+
+            in_fs = []
+            for input_file in input_files:
+                in_fs.append(open(input_file, 'rb'))
+
+            with open(outs_file, 'wb') as f:
+                self.write2file(in_fs, f)
+
+            for f in in_fs:
+                f.close()
+
+    def write2file(self, in_fs, out_f):
+        while True:
+            for f in in_fs:
+                block = f.read(256)
+                if not block:
+                    return
+                out_f.write(block)
+
+    def out_merge_help(self):
+        notice = ['Please input paramater:',
+                'para1~para4:input file to split, The order must be the same as input in split!',
+                'para5:the files to save merged data']
+        self._parent.update_outtext(notice)
+
 class GUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -225,6 +302,12 @@ class GUI:
         if action == 'hashdir':
             p = HashDir(self)
             p.hashdir()
+        if action == 'split':
+            p = Split(self)
+            p.split()
+        if action == 'merge':
+            p = Merge(self)
+            p.merge()
 
     def update_outtext(self, strings):
         for string in strings:
