@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+# !python.exe
+# !/usr/bin/python3
 # coding=utf-8
 # main.py
 #
@@ -14,6 +15,7 @@
 import tkinter as tk
 import hashlib
 import os
+import json
 
 
 def get_key(full_name, hash_type):
@@ -45,7 +47,7 @@ def get_key(full_name, hash_type):
 class CheckSum:
     def __init__(self, parent):
         self._parent = parent
-    
+
     def checksum(self):
         check_file = self._parent.para_strings[0]
         hash_type = self._parent.para_strings[1]
@@ -82,15 +84,20 @@ class CheckUnique:
 
     def unique(self):
         out_file = self._parent.para_strings[4]
-        if len(out_file) == 0 or len(self._parent.para_strings[0]) == 0:
+        need_check_dir = []
+        for x in range(4):
+            if len(self._parent.para_strings[x]) > 0:
+                need_check_dir.append(self._parent.para_strings[x])
+
+        if len(out_file) == 0 or len(need_check_dir) == 0:
             self.out_unique_help()
             return
         self.hash_key = dict()
         self.files = 0
         self.empty_files = []
-        with open(out_file, 'w') as self.out_f:
-            for x in range(4):
-                self.process_unique(self._parent.para_strings[x])
+        with open(out_file, 'w', encoding="utf-8") as self.out_f:
+            for one in need_check_dir:
+                self.process_unique(one)
             for one in self.empty_files:
                 self.out_f.write('#empty File:%s\n' % one)
         notice = ['process success finished!']
@@ -118,16 +125,54 @@ class CheckUnique:
                         self.hash_key[f_key] = full_name
 
     def out_unique_help(self):
-        help = ['Please input paramater:',
+        notice = ['Please input paramater:',
                 'para1~para4:the dir to find equal files, High priority ahead',
                 'para5:the file to out the equal files, can be run in command']
-        self._parent.update_outtext(help)
+        self._parent.update_outtext(notice)
 
     def record_equal(self, ori, equal):
         outs = ['#Ori:%s\n' % ori,
                 'del "%s"\n' % equal]
         for one in outs:
             self.out_f.write(one)
+
+
+class HashDir:
+    def __init__(self, parent):
+        self._parent = parent
+
+    def hashdir(self):
+        out_file = self._parent.para_strings[4]
+        need_hash_dir = []
+        for x in range(4):
+            if len(self._parent.para_strings[x]) > 0:
+                need_hash_dir.append(self._parent.para_strings[x])
+        if len(out_file) == 0 or len(need_hash_dir) == 0:
+            self.out_hashdir_help()
+            return
+
+        self.record = dict()
+        for one in need_hash_dir:
+            self.process_hash(one)
+        with open(out_file, 'w') as f:
+            f.write(json.dumps(self.record, indent=4, ensure_ascii=False))
+
+    def process_hash(self, root):
+        skip_len = len(root)
+        if skip_len == 0:
+            return
+        if os.path.isdir(root):
+            for cur_path, dirs, files in os.walk(root):
+                for file in files:
+                    full_name = os.path.join(cur_path, file)
+                    f_key = get_key(full_name, 'sha1')
+                    self.record[f_key] = full_name[skip_len:]
+
+    def out_hashdir_help(self):
+        notice = ['Please input paramater:',
+                'para1~para4:the dirs build hash key',
+                'para5:the file to save all hash record, as json']
+        self._parent.update_outtext(notice)
 
 
 class GUI:
@@ -164,7 +209,7 @@ class GUI:
             tk.Button(action_buttun, text=buttun,
                         borderwidth=1, relief=tk.RAISED, width=10,
                         command=lambda s=self, r=buttun: s.action(r))\
-                    .pack(side=tk.LEFT, padx=0, pady=0)
+                    .pack(side=tk.LEFT, padx=1, pady=1)
         action_buttun.pack()
 
     def action(self, action):
@@ -177,7 +222,10 @@ class GUI:
         if action == 'unique':
             p = CheckUnique(self)
             p.unique()
-        
+        if action == 'hashdir':
+            p = HashDir(self)
+            p.hashdir()
+
     def update_outtext(self, strings):
         for string in strings:
             self.outText.insert(tk.END, string + '\n')
