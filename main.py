@@ -260,7 +260,7 @@ class GUI:
         para = [None] * 5
         myfont = ('Lucida Console', 12)
         self.outMessageFrame = tk.Frame(self.root, borderwidth=0)
-        self.outText = tk.Text(self.outMessageFrame,height=26, width=130, font=myfont, bg='black', fg='ivory', relief=tk.FLAT)
+        self.outText = tk.Text(self.outMessageFrame,height=26, width=130, font=myfont, bg='#C7EDCC', fg='black', relief=tk.FLAT)
         scroll = tk.Scrollbar(self.outMessageFrame, command=self.outText.yview)
         self.outText.configure(yscrollcommand=scroll.set)
 
