@@ -259,14 +259,17 @@ class GUI:
 
         para = [None] * 5
         myfont = ('Lucida Console', 12)
-        self.outMessageFrame = tk.Frame(self.root, borderwidth=0)
-        self.outText = tk.Text(self.outMessageFrame,height=26, width=130, font=myfont, bg='#C7EDCC', fg='black', relief=tk.FLAT)
-        scroll = tk.Scrollbar(self.outMessageFrame, command=self.outText.yview)
-        self.outText.configure(yscrollcommand=scroll.set)
+        first_array_frame = tk.Frame(self.root, borderwidth=0)
 
+
+        self.outText = tk.Text(first_array_frame, height=26, width=130, font=myfont, bg='#C7EDCC', fg='black', relief=tk.FLAT)
+        scroll = tk.Scrollbar(first_array_frame, command=self.outText.yview)
+        self.outText.configure(yscrollcommand=scroll.set)
         self.outText.pack(side=tk.LEFT)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.outMessageFrame.pack()
+
+
+        first_array_frame.pack()
 
         self.para_entrys = []
         for ofline in range(5):
@@ -280,32 +283,41 @@ class GUI:
             e.set("")
             para[ofline].pack()
 
-        buttuns = {'checksum', 'unique', 'split', 'merge', 'hashdir'}
+        
         action_buttun = tk.Frame(self.root, borderwidth=0)
-        for buttun in buttuns:
-            tk.Button(action_buttun, text=buttun,
-                        borderwidth=1, relief=tk.RAISED, width=10,
-                        command=lambda s=self, r=buttun: s.action(r))\
-                    .pack(side=tk.LEFT, padx=1, pady=1)
+        self.SelectedFun = tk.IntVar()
+        for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5)]:
+            tk.Radiobutton(action_buttun, text=text, value=value, variable=self.SelectedFun, command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
+        self.SelectedFun.set(3)
+
+
+        tk.Button(action_buttun, text='run',
+                    borderwidth=1, relief=tk.RAISED, width=10,
+                    command=lambda s=self, r=self.SelectedFun: s.action(r))\
+                .pack(side=tk.LEFT, padx=1, pady=1)
         action_buttun.pack()
+
+    def SelectedAction(self, action):
+        if action.get() == 1:
+            pass
 
     def action(self, action):
         self.para_strings = []
         for entry in self.para_entrys:
             self.para_strings.append(entry.get())
-        if action == 'checksum':
+        if action.get() == 1:
             p = CheckSum(self)
             p.checksum()
-        if action == 'unique':
+        if action.get() == 2:
             p = CheckUnique(self)
             p.unique()
-        if action == 'hashdir':
+        if action.get() == 3:
             p = HashDir(self)
             p.hashdir()
-        if action == 'split':
+        if action.get() == 4:
             p = Split(self)
             p.split()
-        if action == 'merge':
+        if action.get() == 5:
             p = Merge(self)
             p.merge()
 
