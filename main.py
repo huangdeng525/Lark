@@ -256,38 +256,40 @@ class GUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title('Lark')
-
+        self.frame = []
+        self.windows = []
         para = [None] * 5
         myfont = ('Lucida Console', 12)
-        first_array_frame = tk.Frame(self.root, borderwidth=0)
 
-
-        self.outText = tk.Text(first_array_frame, height=26, width=130, font=myfont, bg='#C7EDCC', fg='black', relief=tk.FLAT)
-        scroll = tk.Scrollbar(first_array_frame, command=self.outText.yview)
-        self.outText.configure(yscrollcommand=scroll.set)
-        self.outText.pack(side=tk.LEFT)
+        self.frame.append(tk.Frame(self.root, borderwidth=0)) 
+        outText = tk.Text(self.frame[0], height=26, width=130, font=myfont, \
+            bg='#C7EDCC', fg='black', relief=tk.FLAT)
+        scroll = tk.Scrollbar(self.frame[0], command=outText.yview)
+        outText.configure(yscrollcommand=scroll.set)
+        outText.pack(side=tk.LEFT)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.windows.append([outText])
+        self.frame[0].pack()
 
-
-        first_array_frame.pack()
-
-        self.para_entrys = []
-        for ofline in range(5):
-            para[ofline] = tk.Frame(self.root, borderwidth=0)
-            para[ofline]
-            tk.Label(para[ofline], text='para[%d]:' % (ofline+1), font=myfont).pack(side=tk.LEFT)
+        col = 0
+        for line in range(5):
+            col += 1
+            self.frame.append(tk.Frame(self.root, borderwidth=0))
+            in_label = tk.Label(self.frame[col], text='para[%d]:' % (col), font=myfont)
+            in_label.pack(side=tk.LEFT)
             e = tk.StringVar()
-            para_ety = tk.Entry(para[ofline], width=128, font=myfont, textvariable=e)
-            para_ety.pack(side=tk.LEFT)
-            self.para_entrys.append(para_ety)
+            in_entry = tk.Entry(self.frame[col], width=128, font=myfont, textvariable=e)
+            in_entry.pack(side=tk.LEFT)
             e.set("")
-            para[ofline].pack()
+            self.windows.append([in_label, in_entry])
+            self.frame[col].pack()
 
         
         action_buttun = tk.Frame(self.root, borderwidth=0)
         self.SelectedFun = tk.IntVar()
         for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5)]:
-            tk.Radiobutton(action_buttun, text=text, value=value, variable=self.SelectedFun, command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
+            tk.Radiobutton(action_buttun, text=text, value=value, variable=self.SelectedFun, \
+                command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
         self.SelectedFun.set(3)
 
 
