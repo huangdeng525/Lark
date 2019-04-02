@@ -262,7 +262,7 @@ class GUI:
         myfont = ('Lucida Console', 12)
 
         self.frame.append(tk.Frame(self.root, borderwidth=0)) 
-        outText = tk.Text(self.frame[0], height=26, width=130, font=myfont, \
+        outText = tk.Text(self.frame[0], height=26, width=120, font=myfont, \
             bg='#C7EDCC', fg='black', relief=tk.FLAT)
         scroll = tk.Scrollbar(self.frame[0], command=outText.yview)
         outText.configure(yscrollcommand=scroll.set)
@@ -278,26 +278,28 @@ class GUI:
             in_label = tk.Label(self.frame[col], text='para[%d]:' % (col), font=myfont)
             in_label.pack(side=tk.LEFT)
             e = tk.StringVar()
-            in_entry = tk.Entry(self.frame[col], width=128, font=myfont, textvariable=e)
+            in_entry = tk.Entry(self.frame[col], width=118, font=myfont, textvariable=e)
             in_entry.pack(side=tk.LEFT)
             e.set("")
             self.windows.append([in_label, in_entry])
             self.frame[col].pack()
 
         
-        action_buttun = tk.Frame(self.root, borderwidth=0)
+        self.frame.append(tk.Frame(self.root, borderwidth=0))
         self.SelectedFun = tk.IntVar()
         for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5)]:
-            tk.Radiobutton(action_buttun, text=text, value=value, variable=self.SelectedFun, \
+            tk.Radiobutton(self.frame[-1], text=text, value=value, variable=self.SelectedFun, \
                 command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
         self.SelectedFun.set(3)
 
+        tab_label = tk.Label(self.frame[-1], width=50, font=myfont)
+        tab_label.pack(side=tk.LEFT)
 
-        tk.Button(action_buttun, text='run',
+        tk.Button(self.frame[-1], text='run',
                     borderwidth=1, relief=tk.RAISED, width=10,
                     command=lambda s=self, r=self.SelectedFun: s.action(r))\
                 .pack(side=tk.LEFT, padx=1, pady=1)
-        action_buttun.pack()
+        self.frame[-1].pack()
 
     def SelectedAction(self, action):
         if action.get() == 1:
