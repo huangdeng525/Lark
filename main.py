@@ -16,6 +16,7 @@ import tkinter as tk
 import hashlib
 import os
 import json
+import zipfile
 
 
 def get_key(full_name, hash_type):
@@ -58,14 +59,26 @@ class ActionBase:
             entry.delete(0, tk.END)
 
     def out(self, notice):
-        self.gui.windows[0][0].insert(tk.END, notice + '\n')
-        self.gui.windows[0][0].see(tk.END)
-        self.gui.windows[0][0].update()
+        self.gui.out_text.config(state='normal')
+        self.gui.out_text.insert(tk.END, notice + '\n')
+        self.gui.out_text.see(tk.END)
+        self.gui.out_text.update()
+        self.gui.out_text.config(state='disable')
+
+    def outs(self, notices):
+        self.gui.out_text.config(state='normal')
+        for notice in notices:
+            self.gui.out_text.insert(tk.END, notice + '\n')
+        self.gui.out_text.see(tk.END)
+        self.gui.out_text.update()
+        self.gui.out_text.config(state='disable')
 
     def FlashOut(self, notice):
-        self.gui.windows[0][1].insert(tk.END, notice + '\n')
-        self.gui.windows[0][1].see(tk.END)
-        self.gui.windows[0][1].update()
+        self.gui.flash_text.config(state='normal')
+        self.gui.flash_text.insert(tk.END, notice + '\n')
+        self.gui.flash_text.see(tk.END)
+        self.gui.flash_text.update()
+        self.gui.flash_text.config(state='disable')
     
 class CheckSum(ActionBase):
     def __init__(self, parent):
@@ -110,8 +123,8 @@ class CheckUnique(ActionBase):
         if len(out_file) == 0 or len(need_check_dir) == 0:
             self.out('para error!')
             return
+
         self.hash_key = dict()
-        self.files = 0
         self.empty_files = []
         with open(out_file, 'w', encoding="utf-8") as self.out_f:
             for one in need_check_dir:
@@ -122,15 +135,14 @@ class CheckUnique(ActionBase):
         self.out('Process success finished!')
 
     def process_unique(self, root):
-        if len(root) == 0:
+        skip_len = len(root)
+        if skip_len == 0:
             return
         if os.path.isdir(root):
             for cur_path, dirs, files in os.walk(root):
                 for file in files:
-                    self.files += 1
-                    if self.files % 1000 == 0:
-                        self.out('\rProcessed files:%d' % self.files)
                     full_name = os.path.join(cur_path, file)
+                    self.FlashOut(full_name[skip_len:])
                     if os.path.getsize(full_name) == 0:
                         self.empty_files.append(full_name)
                         continue
@@ -161,7 +173,7 @@ class HashDir(ActionBase):
             if len(self._parent.para_strings[x]) > 0:
                 need_hash_dir.append(self._parent.para_strings[x])
         if len(out_file) == 0 or len(need_hash_dir) == 0:
-            self.out_hashdir_help()
+            self.out('para error!')
             return
 
         self.record = dict()
@@ -178,14 +190,9 @@ class HashDir(ActionBase):
             for cur_path, dirs, files in os.walk(root):
                 for file in files:
                     full_name = os.path.join(cur_path, file)
+                    self.FlashOut(full_name[skip_len:])
                     f_key = get_key(full_name, 'sha1')
                     self.record[f_key] = full_name[skip_len:]
-
-    def out_hashdir_help(self):
-        notice = ['Please input paramater:',
-                'para1~para4:the dirs build hash key',
-                'para5:the file to save all hash record, as json']
-        self._parent.update_outtext(notice)
 
 
 class Split(ActionBase):
@@ -201,7 +208,7 @@ class Split(ActionBase):
             if len(self._parent.para_strings[x+1]) > 0:
                 outs_files.append(self._parent.para_strings[x+1])
         if len(input_file) == 0 or len(outs_files) < 2:
-            self.out_split_help()
+            self.out('para error!')
             return
 
         out_fs = []
@@ -222,12 +229,6 @@ class Split(ActionBase):
                     return
                 f.write(block)
 
-    def out_split_help(self):
-        notice = ['Please input paramater:',
-                'para1:input file to split',
-                'para2~para5:the files to save split data']
-        self._parent.update_outtext(notice)
-
 
 class Merge(ActionBase):
     def __init__(self, parent):
@@ -242,7 +243,7 @@ class Merge(ActionBase):
             if len(self._parent.para_strings[x]) > 0:
                 input_files.append(self._parent.para_strings[x])
         if len(outs_file) == 0 or len(input_files) == 0:
-            self.out_merge_help()
+            self.out('para error!')
             return
 
         in_fs = []
@@ -263,60 +264,126 @@ class Merge(ActionBase):
                     return
                 out_f.write(block)
 
-    def out_merge_help(self):
-        notice = ['Please input paramater:',
-                'para1~para4:input file to split, The order must be the same as input in split!',
-                'para5:the files to save merged data']
-        self._parent.update_outtext(notice)
 
+class MyZip(ActionBase):
+    def __init__(self, parent):
+        self._parent = parent
+        notice_array = ['To compress dir:', 'The Zip File:','', '', '', ]
+        ActionBase.__init__(self, notice_array, parent)
+
+    def Act(self):
+        input_dir = self._parent.para_strings[0]
+        outs_file = self._parent.para_strings[1]
+        if len(outs_file) == 0 or len(input_dir) == 0 or not os.path.isdir(input_dir):
+            self.out('para error!')
+            return
+
+        skip_len = len(input_dir)
+        if skip_len == 0:
+            return
+
+        with zipfile.ZipFile(outs_file, 'a') as f:
+            for cur_path, dirs, files in os.walk(input_dir):
+                for file in files:
+                    full_name = os.path.join(cur_path, file)
+                    self.FlashOut(full_name[skip_len:])
+                    f.write(full_name, arcname=full_name[skip_len:])
+        self.out('Finished!')
+
+class MyUnZip(ActionBase):
+    def __init__(self, parent):
+        self._parent = parent
+        notice_array = ['The Zip File:', 'To decompress dir:', '', '', '', ]
+        ActionBase.__init__(self, notice_array, parent)
+
+    def Act(self):
+        input_file = self._parent.para_strings[0]
+        outs_dir = self._parent.para_strings[1]
+        if len(input_file) == 0 or len(outs_dir) == 0:
+            self.out('para error!')
+            return
+
+        if not os.path.isdir(outs_dir):
+            os.mkdir(outs_dir)
+
+        with zipfile.ZipFile(input_file, 'r') as f:
+            f.extractall(path=outs_dir)
+        self.out('Finished!')
 
 class GUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title('Lark')
+        self.root.title('Lark 0.3')
         self.frame = []
         self.windows = []
         self.para_entrys = []
         self.label_var = []
         self.my_font = ('Lucida Console', 12)
+        # [bg, fg]
         self.my_color = ['#C7EDCC', 'black']
 
-        self.frame.append(tk.Frame(self.root, borderwidth=0)) 
-        outText = tk.Text(self.frame[0], height=20, width=120, font=self.my_font, bg='#C7EDCC', fg='black', relief=tk.FLAT)
-        scroll = tk.Scrollbar(self.frame[0], command=outText.yview)
-        outText.configure(yscrollcommand=scroll.set)
-        outText.pack(side=tk.TOP)
-        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.crt_outtext()
+        self.crt_flashtext()
+        self.crt_para()
+        self.crt_sel_run()
 
-        FlashText = tk.Text(self.frame[0], height=6, width=120, font=self.my_font, bg='#C7EDCC', fg='black', relief=tk.FLAT)
-        FlashText.pack(side=tk.BOTTOM)
+        self.actions = [CheckSum(self), CheckUnique(self), Split(self), Merge(self), HashDir(self), MyZip(self), MyUnZip(self)]
 
-        self.windows.append([outText, FlashText])
-        self.frame[0].pack()
+    def crt_outtext(self):
+        self.frame.append(tk.Frame(self.root, borderwidth=1))
+        scroll_y = tk.Scrollbar(self.frame[-1])
+        scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+        scroll_x = tk.Scrollbar(self.frame[-1], orient=tk.HORIZONTAL)
+        scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
-        col = 0
+        self.out_text = tk.Text(self.frame[-1],height=20, width=120, font=self.my_font, bg=self.my_color[0], fg=self.my_color[1], \
+                            yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set, wrap='none', relief=tk.FLAT)
+        self.out_text.pack(side=tk.LEFT)
+        scroll_y.config(command=self.out_text.yview)
+        scroll_x.config(command=self.out_text.xview)
+
+        self.frame[-1].pack(padx=1, pady=2)
+        self.out_text.config(state='disable')
+
+    def crt_flashtext(self):
+        self.frame.append(tk.Frame(self.root, borderwidth=1))
+        scroll_y = tk.Scrollbar(self.frame[-1])
+        scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+        scroll_x = tk.Scrollbar(self.frame[-1], orient=tk.HORIZONTAL)
+        scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.flash_text = tk.Text(self.frame[-1],height=6, width=120, font=self.my_font, bg=self.my_color[0], fg=self.my_color[1], \
+                            yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set, wrap='none', relief=tk.FLAT)
+        self.flash_text.pack(side=tk.LEFT)
+        scroll_y.config(command=self.flash_text.yview)
+        scroll_x.config(command=self.flash_text.xview)
+
+        self.frame[-1].pack(padx=1, pady=2)
+        self.flash_text.config(state='disable')
+
+    def crt_para(self):
         for line in range(5):
-            col += 1
-            label_var = tk.StringVar()
+            self.label_var.append(tk.StringVar())
             self.frame.append(tk.Frame(self.root, borderwidth=0))
-            in_label = tk.Label(self.frame[col], width=30, font=self.my_font, textvariable=label_var)
-            self.label_var.append(label_var)
+            in_label = tk.Label(self.frame[-1], width=30, font=self.my_font, textvariable=self.label_var[-1])
             in_label.pack(side=tk.LEFT)
+
             e = tk.StringVar()
-            in_entry = tk.Entry(self.frame[col], width=90, font=self.my_font, textvariable=e)
+            in_entry = tk.Entry(self.frame[-1], width=90, font=self.my_font, textvariable=e)
             in_entry.pack(side=tk.LEFT)
             e.set("")
             self.windows.append([in_label, in_entry])
             self.para_entrys.append(in_entry)
-            self.frame[col].pack()
+            self.frame[-1].pack()
 
+    def crt_sel_run(self):
         self.frame.append(tk.Frame(self.root, borderwidth=0))
         self.SelectedFun = tk.IntVar()
-        for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5)]:
+        for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5), ('zip', 6), ('unzip', 7)]:
             tk.Radiobutton(self.frame[-1], text=text, value=value, variable=self.SelectedFun, \
                 command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
 
-        tab_label = tk.Label(self.frame[-1], width=50, font=my_font)
+        tab_label = tk.Label(self.frame[-1], width=50, font=self.my_font)
         tab_label.pack(side=tk.LEFT)
 
         tk.Button(self.frame[-1], text='run',
@@ -324,24 +391,6 @@ class GUI:
                     command=lambda s=self, r=self.SelectedFun: s.RunAction(r))\
                 .pack(side=tk.LEFT, padx=1, pady=1)
         self.frame[-1].pack()
-
-        self.actions = [CheckSum(self), CheckUnique(self), Split(self), Merge(self), HashDir(self), ]
-
-    def crt_outtext(self):
-                self.out_text_frame = tk.Frame(self.root, borderwidth=1)
-        scroll_y = tk.Scrollbar(self.out_text_frame)
-        scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
-        scroll_x = tk.Scrollbar(self.out_text_frame, orient=tk.HORIZONTAL)
-        scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
-
-        self.out_text = tk.Text(self.out_text_frame,height=22, width=120, font=self.my_font, bg='#C7EDCC', fg='black', \
-                            yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set, wrap='none', relief=tk.FLAT)
-        self.out_text.pack(side=tk.LEFT)
-        scroll_y.config(command=self.out_text.yview)
-        scroll_x.config(command=self.out_text.xview)
-
-        self.out_text_frame.pack(padx=1, pady=2)
-        self.out_text.config(state='disable')
 
     def SelectedAction(self, para):
         if para.get() > 0:
@@ -355,12 +404,6 @@ class GUI:
         if para.get() > 0:
             index = para.get() - 1
             self.actions[index].Act()
-
-    def update_outtext(self, strings):
-        for string in strings:
-            self.windows[0][0].insert(tk.END, string + '\n')
-        self.windows[0][0].see(tk.END)
-        self.windows[0][0].update()
 
     def mainloop(self):
         self.root.mainloop()
