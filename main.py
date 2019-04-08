@@ -44,17 +44,29 @@ def get_key(full_name, hash_type):
     return my_hash.hexdigest()
 
 
-class CheckSum:
+class ActionBase:
+    def __init__(self, notice_array, label_array):
+        self.notice_array = notice_array
+        self.label_array = label_array
+
+    def update_notice(self):
+        for notice, label in zip(self.notice_array, self.label_array):
+            label.set(notice)
+
+
+class CheckSum(ActionBase):
     def __init__(self, parent):
         self._parent = parent
+        notice_array = ['Need To Check File:', 'Alg(md5,sha1,sha256):', 'Need Check Sum(opt):','', '']
+        ActionBase.__init__(self, notice_array, parent.label_var)
 
-    def checksum(self):
+    def Act(self):
         check_file = self._parent.para_strings[0]
         hash_type = self._parent.para_strings[1]
         to_check_sum = self._parent.para_strings[2]
         support_hash = ['md5', 'sha1', 'sha256']
         if len(check_file) == 0 or len(hash_type) == 0 or hash_type not in support_hash:
-            self.out_checksum_help()
+            self._parent.update_outtext('para error:')
             return
         if not os.path.exists(check_file):
             notice = ['File Not Exist!']
@@ -70,19 +82,14 @@ class CheckSum:
                 outs.append('Check Failed!')
         self._parent.update_outtext(outs)
 
-    def out_checksum_help(self):
-        help = ['Please input paramater:',
-                'para1:need check file',
-                'para2:check algorithm(md5, sha1, sha256)',
-                'para3:need checked sum']
-        self._parent.update_outtext(help)
 
-
-class CheckUnique:
+class CheckUnique(ActionBase):
     def __init__(self, parent):
         self._parent = parent
+        notice_array = ['1st dir(H):', '2nd dir(opt):', '3rd dir(opt):','4th dir(L)(opt):', 'File to Save:']
+        ActionBase.__init__(self, notice_array, parent.label_var)
 
-    def unique(self):
+    def Act(self):
         out_file = self._parent.para_strings[4]
         need_check_dir = []
         for x in range(4):
@@ -137,11 +144,13 @@ class CheckUnique:
             self.out_f.write(one)
 
 
-class HashDir:
+class HashDir(ActionBase):
     def __init__(self, parent):
         self._parent = parent
+        notice_array = ['1st dir:', '2nd dir(opt):', '3rd dir(opt):','4th dir(opt):', 'File to Save:']
+        ActionBase.__init__(self, notice_array, parent.label_var)
 
-    def hashdir(self):
+    def Act(self):
         out_file = self._parent.para_strings[4]
         need_hash_dir = []
         for x in range(4):
@@ -175,17 +184,19 @@ class HashDir:
         self._parent.update_outtext(notice)
 
 
-class Split:
+class Split(ActionBase):
     def __init__(self, parent):
         self._parent = parent
+        notice_array = ['To Split File:', '1st Save File:', '2st Save File:','3st Save File(opt):', '4st Save File(opt):']
+        ActionBase.__init__(self, notice_array, parent.label_var)
 
-    def split(self):
+    def Act(self):
         input_file = self._parent.para_strings[0]
         outs_files = []
         for x in range(4):
             if len(self._parent.para_strings[x+1]) > 0:
                 outs_files.append(self._parent.para_strings[x+1])
-        if len(input_file) == 0 or len(outs_files) == 0:
+        if len(input_file) == 0 or len(outs_files) < 2:
             self.out_split_help()
             return
 
@@ -214,29 +225,31 @@ class Split:
         self._parent.update_outtext(notice)
 
 
-class Merge:
+class Merge(ActionBase):
     def __init__(self, parent):
         self._parent = parent
+        notice_array = ['1st Merge File:', '2st Merge File:','3st Merge File(opt):', '4st Merge File(opt):','To Save File:', ]
+        ActionBase.__init__(self, notice_array, parent.label_var)
 
-    def merge(self):
-            outs_file = self._parent.para_strings[4]
-            input_files = []
-            for x in range(4):
-                if len(self._parent.para_strings[x]) > 0:
-                    input_files.append(self._parent.para_strings[x])
-            if len(outs_file) == 0 or len(input_files) == 0:
-                self.out_merge_help()
-                return
+    def Act(self):
+        outs_file = self._parent.para_strings[4]
+        input_files = []
+        for x in range(4):
+            if len(self._parent.para_strings[x]) > 0:
+                input_files.append(self._parent.para_strings[x])
+        if len(outs_file) == 0 or len(input_files) == 0:
+            self.out_merge_help()
+            return
 
-            in_fs = []
-            for input_file in input_files:
-                in_fs.append(open(input_file, 'rb'))
+        in_fs = []
+        for input_file in input_files:
+            in_fs.append(open(input_file, 'rb'))
 
-            with open(outs_file, 'wb') as f:
-                self.write2file(in_fs, f)
+        with open(outs_file, 'wb') as f:
+            self.write2file(in_fs, f)
 
-            for f in in_fs:
-                f.close()
+        for f in in_fs:
+            f.close()
 
     def write2file(self, in_fs, out_f):
         while True:
@@ -252,18 +265,20 @@ class Merge:
                 'para5:the files to save merged data']
         self._parent.update_outtext(notice)
 
+
 class GUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title('Lark')
         self.frame = []
         self.windows = []
-        para = [None] * 5
-        myfont = ('Lucida Console', 12)
+        self.para_entrys = []
+        self.label_var = []
+
+        my_font = ('Lucida Console', 12)
 
         self.frame.append(tk.Frame(self.root, borderwidth=0)) 
-        outText = tk.Text(self.frame[0], height=26, width=120, font=myfont, \
-            bg='#C7EDCC', fg='black', relief=tk.FLAT)
+        outText = tk.Text(self.frame[0], height=26, width=120, font=my_font, bg='#C7EDCC', fg='black', relief=tk.FLAT)
         scroll = tk.Scrollbar(self.frame[0], command=outText.yview)
         outText.configure(yscrollcommand=scroll.set)
         outText.pack(side=tk.LEFT)
@@ -274,14 +289,17 @@ class GUI:
         col = 0
         for line in range(5):
             col += 1
+            label_var = tk.StringVar()
             self.frame.append(tk.Frame(self.root, borderwidth=0))
-            in_label = tk.Label(self.frame[col], text='para[%d]:' % (col), font=myfont)
+            in_label = tk.Label(self.frame[col], width=30, font=my_font, textvariable=label_var)
+            self.label_var.append(label_var)
             in_label.pack(side=tk.LEFT)
             e = tk.StringVar()
-            in_entry = tk.Entry(self.frame[col], width=118, font=myfont, textvariable=e)
+            in_entry = tk.Entry(self.frame[col], width=90, font=my_font, textvariable=e)
             in_entry.pack(side=tk.LEFT)
             e.set("")
             self.windows.append([in_label, in_entry])
+            self.para_entrys.append(in_entry)
             self.frame[col].pack()
 
         
@@ -290,46 +308,36 @@ class GUI:
         for text, value in [('checksum', 1), ('unique', 2), ('split', 3), ('merge', 4), ('hashdir', 5)]:
             tk.Radiobutton(self.frame[-1], text=text, value=value, variable=self.SelectedFun, \
                 command=lambda s=self, r=self.SelectedFun: s.SelectedAction(r)).pack(side=tk.LEFT, anchor=tk.W)
-        self.SelectedFun.set(3)
 
-        tab_label = tk.Label(self.frame[-1], width=50, font=myfont)
+        tab_label = tk.Label(self.frame[-1], width=50, font=my_font)
         tab_label.pack(side=tk.LEFT)
 
         tk.Button(self.frame[-1], text='run',
                     borderwidth=1, relief=tk.RAISED, width=10,
-                    command=lambda s=self, r=self.SelectedFun: s.action(r))\
+                    command=lambda s=self, r=self.SelectedFun: s.RunAction(r))\
                 .pack(side=tk.LEFT, padx=1, pady=1)
         self.frame[-1].pack()
 
-    def SelectedAction(self, action):
-        if action.get() == 1:
-            pass
+        self.actions = [CheckSum(self), CheckUnique(self), Split(self), Merge(self), HashDir(self), ]
 
-    def action(self, action):
+    def SelectedAction(self, para):
+        if para.get() > 0:
+            index = para.get() - 1
+            self.actions[index].update_notice()
+
+    def RunAction(self, para):
         self.para_strings = []
         for entry in self.para_entrys:
             self.para_strings.append(entry.get())
-        if action.get() == 1:
-            p = CheckSum(self)
-            p.checksum()
-        if action.get() == 2:
-            p = CheckUnique(self)
-            p.unique()
-        if action.get() == 3:
-            p = HashDir(self)
-            p.hashdir()
-        if action.get() == 4:
-            p = Split(self)
-            p.split()
-        if action.get() == 5:
-            p = Merge(self)
-            p.merge()
+        if para.get() > 0:
+            index = para.get() - 1
+            self.actions[index].Act()
 
     def update_outtext(self, strings):
         for string in strings:
-            self.outText.insert(tk.END, string + '\n')
-        self.outText.see(tk.END)
-        self.outText.update()
+            self.windows[0][0].insert(tk.END, string + '\n')
+        self.windows[0][0].see(tk.END)
+        self.windows[0][0].update()
 
     def mainloop(self):
         self.root.mainloop()
