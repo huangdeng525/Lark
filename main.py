@@ -17,6 +17,7 @@ import hashlib
 import os
 import json
 import zipfile
+import datetime
 
 
 def get_key(full_name, hash_type):
@@ -79,14 +80,25 @@ class ActionBase:
         self.gui.flash_text.see(tk.END)
         self.gui.flash_text.update()
         self.gui.flash_text.config(state='disable')
-    
+
+    def Act(self):
+        ClassName = str(type(self))
+        ClassName = ClassName[ClassName.find('.')+1:-2]
+        td = datetime.datetime.today()
+        begin_notice = "Start  [%s] at [%d-%02d-%02d-%02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
+        self.out(begin_notice)
+        self.RealAct()
+        td = datetime.datetime.today()
+        end_notice = "Finish [%s] at [%d-%02d-%02d-%02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
+        self.out(end_notice)
+
 class CheckSum(ActionBase):
     def __init__(self, parent):
         self._parent = parent
         notice_array = ['Need To Check File:', 'Alg(md5,sha1,sha256):', 'Need Check Sum(opt):','', '']
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         check_file = self._parent.para_strings[0]
         hash_type = self._parent.para_strings[1]
         to_check_sum = self._parent.para_strings[2]
@@ -113,7 +125,7 @@ class CheckUnique(ActionBase):
         notice_array = ['1st dir(H):', '2nd dir(opt):', '3rd dir(opt):','4th dir(L)(opt):', 'File to Save:']
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         out_file = self._parent.para_strings[4]
         need_check_dir = []
         for x in range(4):
@@ -132,7 +144,6 @@ class CheckUnique(ActionBase):
                 self.process_unique(one)
             for one in self.empty_files:
                 self.out_f.write('#empty File:%s\n' % one)
-        self.out('Process success finished!')
 
     def process_unique(self, root):
         skip_len = len(root)
@@ -166,7 +177,7 @@ class HashDir(ActionBase):
         notice_array = ['1st dir:', '2nd dir(opt):', '3rd dir(opt):','4th dir(opt):', 'File to Save:']
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         out_file = self._parent.para_strings[4]
         need_hash_dir = []
         for x in range(4):
@@ -201,7 +212,7 @@ class Split(ActionBase):
         notice_array = ['To Split File:', '1st Save File:', '2st Save File:','3st Save File(opt):', '4st Save File(opt):']
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         input_file = self._parent.para_strings[0]
         outs_files = []
         for x in range(4):
@@ -236,7 +247,7 @@ class Merge(ActionBase):
         notice_array = ['1st Merge File:', '2st Merge File:','3st Merge File(opt):', '4st Merge File(opt):','To Save File:', ]
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         outs_file = self._parent.para_strings[4]
         input_files = []
         for x in range(4):
@@ -271,7 +282,7 @@ class MyZip(ActionBase):
         notice_array = ['To compress dir:', 'The Zip File:','', '', '', ]
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         input_dir = self._parent.para_strings[0]
         outs_file = self._parent.para_strings[1]
         if len(outs_file) == 0 or len(input_dir) == 0 or not os.path.isdir(input_dir):
@@ -288,7 +299,7 @@ class MyZip(ActionBase):
                     full_name = os.path.join(cur_path, file)
                     self.FlashOut(full_name[skip_len:])
                     f.write(full_name, arcname=full_name[skip_len:])
-        self.out('Finished!')
+
 
 class MyUnZip(ActionBase):
     def __init__(self, parent):
@@ -296,7 +307,7 @@ class MyUnZip(ActionBase):
         notice_array = ['The Zip File:', 'To decompress dir:', '', '', '', ]
         ActionBase.__init__(self, notice_array, parent)
 
-    def Act(self):
+    def RealAct(self):
         input_file = self._parent.para_strings[0]
         outs_dir = self._parent.para_strings[1]
         if len(input_file) == 0 or len(outs_dir) == 0:
@@ -308,7 +319,7 @@ class MyUnZip(ActionBase):
 
         with zipfile.ZipFile(input_file, 'r') as f:
             f.extractall(path=outs_dir)
-        self.out('Finished!')
+
 
 class GUI:
     def __init__(self):
