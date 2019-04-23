@@ -85,11 +85,11 @@ class ActionBase:
         ClassName = str(type(self))
         ClassName = ClassName[ClassName.find('.')+1:-2]
         td = datetime.datetime.today()
-        begin_notice = "Start  [%s] at [%d-%02d-%02d-%02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
+        begin_notice = "Start  [%s][%d-%02d-%02d %02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
         self.out(begin_notice)
         self.RealAct()
         td = datetime.datetime.today()
-        end_notice = "Finish [%s] at [%d-%02d-%02d-%02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
+        end_notice = "Finish [%s][%d-%02d-%02d %02d:%02d:%02d]" % (ClassName, td.year, td.month, td.day, td.hour, td.minute, td.second)
         self.out(end_notice)
 
 class CheckSum(ActionBase):
