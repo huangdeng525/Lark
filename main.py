@@ -143,7 +143,7 @@ class CheckUnique(ActionBase):
                 self.out('Process Dir:' + one)
                 self.process_unique(one)
             for one in self.empty_files:
-                self.out_f.write('#empty File:%s\n' % one)
+                self.out_f.write('rem empty_file:"%s"\n' % one)
 
     def process_unique(self, root):
         skip_len = len(root)
@@ -165,7 +165,7 @@ class CheckUnique(ActionBase):
                         self.hash_key[f_key] = full_name
 
     def record_equal(self, ori, equal):
-        outs = ['#Ori:%s\n' % ori,
+        outs = ['\nrem "%s"\n' % ori,
                 'del "%s"\n' % equal]
         for one in outs:
             self.out_f.write(one)
